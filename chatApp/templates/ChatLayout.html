@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <title>Chat!</title>
+    <style>
+    	div.msgbbl{
+    		background-color: #ddd;
+    		padding: 5px 10px;
+    		border-radius: 10px;
+    		color: #555;
+    		margin-bottom: 5px;
+    		width: 450px;
+    		position: relative;
+    	}
+    	.scrollable{
+    		overflow: auto;
+    		height: 600px;
+    	}
+    </style>
+  </head>
+  <body>
+  	<div class = "container-fluid">
+  		<div class = "well text-center">
+  			<h4>My Chat App</h4>
+  		</div>
+  		<div class = "col-sm-8">
+  			<div id = "nomsg">
+  				<div class = "scrollable">
+
+  					<h1 style = "color:#ccc">NO Message Yet</h1>
+  					<div class = "msg-wrapper"></div>
+  				</div>
+  			</div>
+  		</div>
+  		<div class = "col-sm-4" >
+  			<form class="form-horizontal" method = "post" action = "">
+  			<b>Type Your message below span.</b>
+  			<hr>
+			  <div class="form-group">
+			    <label class="control-label col-sm-2" for="email">UserName:</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="username form-control" id="name" name = "name" placeholder="Your UserName">
+			    </div>
+			  </div>
+        <div class="form-group">
+          <label class="control-label col-sm-2" for="pwd">To:</label>
+          <div class="col-sm-10"> 
+            <input type="text" class="to form-control" id="to" name = "to" placeholder="Enter Reciepent">
+          </div>
+        </div>
+			  <div class="form-group">
+			    <label class="control-label col-sm-2" for="pwd">Message:</label>
+			    <div class="col-sm-10"> 
+			      <input type="text" class="message form-control" id="message" name = "message" placeholder="Enter Message" onkeyup="userIsTyping()" onkeydown="userStopTyping()">
+			    </div>
+			  </div>
+			  <div class="form-group"> 
+			    <div class="col-sm-offset-2 col-sm-10">
+			      <button type="submit" class="btn btn-success">Send</button>
+			    </div>
+			  </div>
+			  <div class = "form-group">
+			  		<i style = "color:gray;margin-left: 20px;display: none;"></i>
+			  </div>
+			</form>
+  		</div>
+  	</div>
+  	
+   	<!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    
+	<!-- jQuery library -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+	<!-- Latest compiled JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    
+    <!-- Socket Cdn JavaScript -->
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+
+    <script type="text/javascript">
+
+    	var socket = io.connect('http://localhost:5000/')
+
+    	// Connect to the server
+    	socket.on('connect',function(){
+    		//send a message on connecting
+    		socket.emit('request',{
+    			data:'user connected'
+    		})
+    	})
+
+      
+      socket.on('disconnect', function () {
+        console.log('user disconnected');
+    });
+
+    	// ger response from server
+    	socket.on('response',function(msg){
+
+    		if( typeof msg.user !== 'undefined'){
+    			var name = $('input.username').val()
+    			$('h1').remove()
+    			$('i').hide()
+    			if (msg.user == name){
+            $('div.msg-wrapper').append('<div class = "msgbbl" style = "margin-left:100px;background-color:#F5F5F5;color:black;"><b>'+msg.user+'</b>  '+msg.mess+'</b>  '+msg.date+'</div>')
+    			}else if (msg.to == name){
+    				$('div.msg-wrapper').append('<div class = "msgbbl" style = "background-color:#5FB760;color:white;"><b>'+msg.user+'</b>  '+msg.mess+'</b>  '+msg.date+'</div>')
+    			}
+
+    		}else if(typeof msg.isTyping !== 'undefined'){
+    			var name = $('input.username').val()
+    			if (msg.isTyping == 'true'){
+    				if (msg.name != name){
+  						console.log('typing')
+  						$('i').show()
+              if(msg.to == name){
+                $('i').text(''+msg.name+''+' is typing....')
+              }else{
+                $('i').hide()
+              }
+  					}
+    			}else{
+    				if (msg.name != name){
+    					$('i').hide()
+  					}
+    			}
+    		}else{
+          console.log(msg)
+        }
+    	})
+
+  		var form = $ (' form ').on('submit',function(e){
+  			e.preventDefault()
+  			var name = $('input.username').val()
+  			var message = $('input.message').val()
+        var to = $('input.to').val()
+        console.log(to)
+  			var d = new Date(),
+      		h = (d.getHours()<10?'0':'') + d.getHours(),
+      		m = (d.getMinutes()<10?'0':'') + d.getMinutes();
+  			var i = h + ':' + m;
+  			socket.emit('request',{
+  				user:name,
+  				mess:message,
+          to:to,
+  				date:i
+  			})
+  			$('input.message').val('').focus()
+
+  			
+  		});
+  	</script>
+  	<script >
+  		function userIsTyping(){
+  			var name = $('input.username').val()
+        var to = $('input.to').val()
+  			if(name != ''){
+  				console.log('emiting')
+  				socket.emit('request',{
+  					isTyping:'true',
+  					name:name,
+            to:to
+  				})
+  			}
+  		}
+
+  		var timer = null;
+  		function userStopTyping(){
+
+  			var name = $('input.username').val()
+        var to = $('input.to').val()
+  			if(name != ''){
+  				clearTimeout(timer); 
+       			timer = setTimeout(emitSocket, 1200)
+  			}
+  		}
+      
+  		function emitSocket(){
+  			console.log('emiting')
+  			socket.emit('request',{
+  				isTyping:'false',
+  				name:name,
+          to:to
+  			})
+  		}
+
+  	</script>
+  </body>
+</html>
